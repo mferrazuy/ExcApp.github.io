@@ -6,6 +6,7 @@
     <title>HIIT Timer Pro</title>
     <script defer src="https://cdn.jsdelivr.net/npm/alpinejs@3.x.x/dist/cdn.min.js"></script>
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css">
+    <link rel="manifest" href="manifest.json">
     
     <style>
         /* Estilos básicos oscuros */
@@ -13,133 +14,273 @@
         
         /* Utilidades */
         .hidden { display: none; }
-        .btn { padding: 12px 20px; border-radius: 8px; border: none; cursor: pointer; font-weight: bold; margin: 5px; width: 100%; }
+        .btn { padding: 12px 20px; border-radius: 8px; border: none; cursor: pointer; font-weight: bold; margin: 5px; width: 100%; font-size: 1rem; }
         .btn-green { background: #4ade80; color: #003300; }
         .btn-red { background: #f87171; color: #450a0a; }
         .btn-blue { background: #60a5fa; color: #1e3a8a; }
         .btn-gray { background: #4b5563; color: white; }
+        .btn-outline { background: transparent; border: 1px solid #666; color: #ccc; }
         
         /* Timer Styles */
         .timer-container { flex: 1; display: flex; flex-direction: column; justify-content: center; align-items: center; text-align: center; }
         .big-text { font-size: 6rem; font-weight: bold; margin: 0; }
-        .exercise-name { font-size: 2.5rem; color: #4ade80; margin-bottom: 20px; }
+        .exercise-name { font-size: 2.5rem; color: #4ade80; margin-bottom: 20px; word-wrap: break-word; }
         .is-rest { color: #f87171; }
 
-        /* Form Styles */
-        .form-container { max-width: 600px; margin: 0 auto; width: 100%; overflow-y: auto; }
+        /* Form & Menu Styles */
+        .scroll-container { max-width: 600px; margin: 0 auto; width: 100%; overflow-y: auto; flex: 1; }
         .input-group { margin-bottom: 10px; display: flex; gap: 10px; }
-        input, select { padding: 10px; border-radius: 5px; border: 1px solid #444; background: #333; color: white; width: 100%; }
-        .lista-ejercicios { margin-top: 20px; text-align: left; }
-        .item-lista { background: #333; padding: 10px; margin-bottom: 5px; border-radius: 5px; display: flex; justify-content: space-between; align-items: center; }
+        input, select { padding: 10px; border-radius: 5px; border: 1px solid #444; background: #333; color: white; width: 100%; font-size: 1rem; }
+        
+        .item-lista { background: #333; padding: 15px; margin-bottom: 10px; border-radius: 8px; display: flex; justify-content: space-between; align-items: center; }
+        .item-lista strong { display: block; font-size: 1.1rem; }
+        .tag { font-size: 0.8rem; padding: 2px 6px; border-radius: 4px; background: #444; margin-right: 5px; }
     </style>
 </head>
 <body>
 
-    <div x-data="app()" class="app-wrapper" style="height: 100%;">
+    <div x-data="app()" class="app-wrapper" style="height: 100%; display: flex; flex-direction: column;">
         
+        <div x-show="modo === 'menu'" class="scroll-container">
+            <h2 style="text-align: center;">Mis Rutinas</h2>
+            
+            <template x-for="(rutina, index) in todasLasRutinas" :key="index">
+                <div class="item-lista">
+                    <div @click="cargarRutina(index)" style="flex-grow: 1; cursor: pointer;">
+                        <strong x-text="rutina.nombre"></strong>
+                        <div style="font-size: 0.8em; color: #aaa; margin-top: 5px;">
+                            <span x-text="rutina.ejercicios.length + ' ejercicios'"></span>
+                        </div>
+                    </div>
+                    <button @click.stop="borrarRutina(index)" style="background: none; border: none; color: #f87171; font-size: 1.2rem; padding: 10px;">
+                        <i class="fa-solid fa-trash"></i>
+                    </button>
+                </div>
+            </template>
+
+            <div style="margin-top: 30px; border-top: 1px solid #444; padding-top: 20px;">
+                <label style="display: block; margin-bottom: 10px; color: #888;">Crear nueva rutina:</label>
+                <div class="input-group">
+                    <input type="text" x-model="nombreNuevaRutina" placeholder="Nombre (ej. Piernas)">
+                    <button @click="crearRutina()" class="btn btn-green" style="width: auto;">Crear</button>
+                </div>
+            </div>
+        </div>
+
         <div x-show="modo === 'timer'" class="timer-container">
-            <div class="exercise-name" :class="ejercicioActual.tipo === 'rest' ? 'is-rest' : ''">
-                <span x-text="ejercicioActual.nombre"></span>
+            <div style="position: absolute; top: 20px; font-size: 0.9rem; color: #888;" x-text="nombreRutinaActual"></div>
+
+            <div class="exercise-name" :class="ejercicioActivo.tipo === 'rest' ? 'is-rest' : ''">
+                <span x-text="ejercicioActivo.nombre"></span>
             </div>
             
             <div class="big-text" x-text="tiempoRestante"></div>
             
-            <div style="margin-top: 30px; display: flex; width: 100%; max-width: 300px;">
-                <button @click="toggleTimer()" class="btn btn-green" x-text="corriendo ? 'PAUSAR' : 'INICIAR'"></button>
-                <button @click="reset()" class="btn btn-gray">RESET</button>
+            <div style="margin-top: 30px; display: flex; width: 100%; max-width: 300px; gap: 10px;">
+                <button @click="toggleTimer()" class="btn" :class="corriendo ? 'btn-red' : 'btn-green'" x-text="corriendo ? 'PAUSAR' : 'INICIAR'"></button>
+                <button @click="resetTimer()" class="btn btn-gray">RESET</button>
             </div>
             
-            <button @click="modo = 'config'" class="btn btn-blue" style="margin-top: 20px; max-width: 300px;">
-                <i class="fa-solid fa-gear"></i> Editar Rutina
-            </button>
+            <div style="margin-top: 30px; width: 100%; max-width: 300px;">
+                <button @click="modo = 'config'" class="btn btn-blue">
+                    <i class="fa-solid fa-gear"></i> Editar Ejercicios
+                </button>
+                <button @click="volverAlMenu()" class="btn btn-outline" style="margin-top: 10px;">
+                    <i class="fa-solid fa-arrow-left"></i> Cambiar Rutina
+                </button>
+            </div>
         </div>
 
-        <div x-show="modo === 'config'" class="form-container">
-            <h2>Configurar Rutina</h2>
-            
-            <div class="input-group">
-                <input type="text" x-model="nuevoNombre" placeholder="Nombre (ej. Burpees)">
+        <div x-show="modo === 'config'" class="scroll-container">
+            <div style="display: flex; justify-content: space-between; align-items: center;">
+                <h2>Editando: <span x-text="nombreRutinaActual" style="color: #4ade80;"></span></h2>
+                <button @click="modo = 'timer'" style="background: none; border: none; color: white; font-size: 1.5rem;"><i class="fa-solid fa-times"></i></button>
             </div>
-            <div class="input-group">
-                <input type="number" x-model="nuevoTiempo" placeholder="Segundos" style="width: 30%;">
-                <select x-model="nuevoTipo">
-                    <option value="work">Trabajo</option>
-                    <option value="rest">Descanso</option>
-                </select>
-                <button @click="agregarEjercicio()" class="btn btn-green" style="width: auto;">+</button>
+            
+            <div class="input-group" style="background: #2a2a2a; padding: 10px; border-radius: 8px; flex-direction: column;">
+                <input type="text" x-model="nuevoNombreEj" placeholder="Nombre (ej. Burpees)">
+                <div style="display: flex; gap: 5px;">
+                    <input type="number" x-model="nuevoTiempoEj" placeholder="Seg." style="width: 30%;">
+                    <select x-model="nuevoTipoEj">
+                        <option value="work">Trabajo</option>
+                        <option value="rest">Descanso</option>
+                    </select>
+                    <button @click="agregarEjercicio()" class="btn btn-green" style="width: auto;">+</button>
+                </div>
             </div>
 
-            <div class="lista-ejercicios">
-                <template x-for="(ej, index) in ejercicios" :key="index">
+            <div style="margin-top: 20px;">
+                <template x-for="(ej, index) in ejerciciosActuales" :key="index">
                     <div class="item-lista">
                         <div>
-                            <strong x-text="ej.nombre"></strong>
-                            <span x-text="'(' + ej.tiempo + 's)'" style="font-size: 0.8em; color: #ccc;"></span>
+                            <strong x-text="ej.nombre" :style="ej.tipo === 'rest' ? 'color: #f87171' : 'color: #4ade80'"></strong>
+                            <span class="tag" x-text="ej.tiempo + 's'"></span>
+                            <span class="tag" x-text="ej.tipo === 'work' ? 'Work' : 'Rest'"></span>
                         </div>
-                        <button @click="eliminarEjercicio(index)" style="background: none; border: none; color: #f87171; cursor: pointer;">
+                        <button @click="eliminarEjercicio(index)" style="background: none; border: none; color: #666; cursor: pointer;">
                             <i class="fa-solid fa-trash"></i>
                         </button>
                     </div>
                 </template>
+                <div x-show="ejerciciosActuales.length === 0" style="text-align: center; color: #666; margin-top: 20px;">
+                    No hay ejercicios en esta rutina aún.
+                </div>
             </div>
 
             <div style="margin-top: 20px;">
-                <button @click="guardarYVolver()" class="btn btn-blue">Guardar y Entrenar</button>
-                <button @click="restaurarDefault()" class="btn btn-gray" style="font-size: 0.8rem;">Restaurar Ejemplo</button>
+                <button @click="modo = 'timer'" class="btn btn-blue">Terminar Edición</button>
             </div>
         </div>
 
     </div>
 
     <script>
+      if ('serviceWorker' in navigator) {
+        navigator.serviceWorker.register('./sw.js')
+          .then(() => console.log('SW registrado'))
+          .catch((err) => console.log('SW fallo', err));
+      }
+    </script>
+
+    <script>
         function app() {
             return {
-                modo: 'timer', // 'timer' o 'config'
+                // Estado General
+                wakeLock: null,
+                modo: 'menu', 
+                todasLasRutinas: [], 
+                rutinaActualIndex: null, 
+                nombreNuevaRutina: '',
+
+                // Estado del Timer
                 corriendo: false,
-                indice: 0,
+                indiceEjercicio: 0,
                 tiempoRestante: 0,
                 intervalo: null,
                 
-                // Variables para el formulario
-                nuevoNombre: '',
-                nuevoTiempo: 30,
-                nuevoTipo: 'work',
+                // Formulario
+                nuevoNombreEj: '',
+                nuevoTiempoEj: 30,
+                nuevoTipoEj: 'work',
 
-                // Datos iniciales
-                ejercicios: [],
-
-                get ejercicioActual() {
-                    return this.ejercicios[this.indice] || { nombre: 'Fin', tipo: 'rest' };
+                // --- PROPIEDADES CALCULADAS (GETTERS) ---
+                // Esto es clave: "ejerciciosActuales" busca dinámicamente
+                // la lista dentro de la rutina que hayamos seleccionado.
+                get ejerciciosActuales() {
+                    if (this.rutinaActualIndex === null) return [];
+                    return this.todasLasRutinas[this.rutinaActualIndex].ejercicios;
                 },
 
+                get ejercicioActivo() {
+                    return this.ejerciciosActuales[this.indiceEjercicio] || { nombre: '¡FIN!', tipo: 'rest' };
+                },
+
+                get nombreRutinaActual() {
+                    if (this.rutinaActualIndex === null) return '';
+                    return this.todasLasRutinas[this.rutinaActualIndex].nombre;
+                },
+
+                // --- INICIO ---
                 init() {
-                    // Intentar cargar de LocalStorage al iniciar
-                    const guardado = localStorage.getItem('miRutinaHIIT');
+                    const guardado = localStorage.getItem('misRutinasAPP');
                     if (guardado) {
-                        this.ejercicios = JSON.parse(guardado);
+                        this.todasLasRutinas = JSON.parse(guardado);
                     } else {
-                        this.restaurarDefault();
+                        // Rutina de ejemplo si es la primera vez
+                        this.todasLasRutinas = [{ 
+                            nombre: "Ejemplo Rápido", 
+                            ejercicios: [
+                                { nombre: "Preparados", tiempo: 5, tipo: "rest" },
+                                { nombre: "Saltos", tiempo: 10, tipo: "work" }
+                            ] 
+                        }];
                     }
-                    this.reset();
                 },
 
-                // --- Lógica del Timer ---
-                reset() {
+                // --- GESTIÓN DE RUTINAS ---
+                crearRutina() {
+                    if (!this.nombreNuevaRutina) return;
+                    this.todasLasRutinas.push({
+                        nombre: this.nombreNuevaRutina,
+                        ejercicios: [] 
+                    });
+                    this.guardarTodo();
+                    this.nombreNuevaRutina = '';
+                },
+
+                borrarRutina(index) {
+                    if(confirm("¿Seguro que quieres borrar esta rutina?")) {
+                        this.todasLasRutinas.splice(index, 1);
+                        this.guardarTodo();
+                    }
+                },
+
+                cargarRutina(index) {
+                    this.rutinaActualIndex = index;
+                    this.indiceEjercicio = 0;
                     this.corriendo = false;
                     clearInterval(this.intervalo);
-                    this.indice = 0;
-                    if(this.ejercicios.length > 0) 
-                        this.tiempoRestante = this.ejercicios[0].tiempo;
+                    
+                    // Si no tiene ejercicios, mandarlo a editar
+                    if (this.ejerciciosActuales.length === 0) {
+                        this.modo = 'config';
+                    } else {
+                        this.tiempoRestante = this.ejerciciosActuales[0].tiempo;
+                        this.modo = 'timer';
+                    }
+                },
+
+                volverAlMenu() {
+                    this.corriendo = false;
+                    clearInterval(this.intervalo);
+                    this.modo = 'menu';
+                    this.rutinaActualIndex = null;
+                },
+
+                guardarTodo() {
+                    localStorage.setItem('misRutinasAPP', JSON.stringify(this.todasLasRutinas));
+                },
+
+                // --- GESTIÓN DE EJERCICIOS (CRUD) ---
+                // Fíjate que aquí ya NO usamos "this.ejercicios.push"
+                // Usamos "this.todasLasRutinas[indice].ejercicios.push"
+                agregarEjercicio() {
+                    if(!this.nuevoNombreEj) return;
+                    
+                    this.todasLasRutinas[this.rutinaActualIndex].ejercicios.push({
+                        nombre: this.nuevoNombreEj,
+                        tiempo: parseInt(this.nuevoTiempoEj),
+                        tipo: this.nuevoTipoEj
+                    });
+                    
+                    this.guardarTodo();
+                    this.nuevoNombreEj = ''; // Limpiar campo
+                },
+
+                eliminarEjercicio(index) {
+                    this.todasLasRutinas[this.rutinaActualIndex].ejercicios.splice(index, 1);
+                    this.guardarTodo();
+                },
+
+                // --- LÓGICA DEL TIMER ---
+                resetTimer() {
+                    this.corriendo = false;
+                    clearInterval(this.intervalo);
+                    this.indiceEjercicio = 0;
+                    if(this.ejerciciosActuales.length > 0) 
+                        this.tiempoRestante = this.ejerciciosActuales[0].tiempo;
                 },
 
                 toggleTimer() {
-                    if (this.ejercicios.length === 0) return alert("Agrega ejercicios primero");
+                    if (this.ejerciciosActuales.length === 0) return alert("Rutina vacía");
                     
                     if (this.corriendo) {
                         this.corriendo = false;
                         clearInterval(this.intervalo);
+                        this.desactivarPantalla();
                     } else {
                         this.corriendo = true;
+                        this.activarPantalla();
                         this.intervalo = setInterval(() => {
                             if (this.tiempoRestante > 0) {
                                 this.tiempoRestante--;
@@ -151,54 +292,45 @@
                 },
 
                 siguienteEjercicio() {
-                    if (this.indice < this.ejercicios.length - 1) {
-                        this.indice++;
-                        this.tiempoRestante = this.ejercicios[this.indice].tiempo;
-                        this.hablar(this.ejercicios[this.indice].nombre);
+                    if (this.indiceEjercicio < this.ejerciciosActuales.length - 1) {
+                        this.indiceEjercicio++;
+                        this.tiempoRestante = this.ejerciciosActuales[this.indiceEjercicio].tiempo;
+                        this.hablar(this.ejerciciosActuales[this.indiceEjercicio].nombre);
                     } else {
                         this.corriendo = false;
                         clearInterval(this.intervalo);
-                        this.hablar("Rutina terminada");
+                        this.hablar("Entrenamiento completado");
                         alert("¡Terminado!");
+                        this.modo = 'menu';
                     }
                 },
-
+                
                 hablar(texto) {
-                    if('speechSynthesis' in window){
+                     if('speechSynthesis' in window){
                         const msg = new SpeechSynthesisUtterance(texto);
                         window.speechSynthesis.speak(msg);
                     }
                 },
 
-                // --- Lógica de Gestión (CRUD + LocalStorage) ---
-                agregarEjercicio() {
-                    if(!this.nuevoNombre) return;
-                    this.ejercicios.push({
-                        nombre: this.nuevoNombre,
-                        tiempo: parseInt(this.nuevoTiempo),
-                        tipo: this.nuevoTipo
-                    });
-                    this.nuevoNombre = ''; // Limpiar input
+                // --- GESTIÓN DE PANTALLA (WAKE LOCK) ---
+                async activarPantalla() {
+                    if ('wakeLock' in navigator) {
+                        try {
+                            this.wakeLock = await navigator.wakeLock.request('screen');
+                            console.log('Pantalla bloqueada (no se apagará)');
+                        } catch (err) {
+                            console.log('Error al bloquear pantalla:', err);
+                        }
+                    }
                 },
 
-                eliminarEjercicio(index) {
-                    this.ejercicios.splice(index, 1);
+                async desactivarPantalla() {
+                    if (this.wakeLock !== null) {
+                        await this.wakeLock.release();
+                        this.wakeLock = null;
+                        console.log('Pantalla liberada');
+                    }
                 },
-
-                guardarYVolver() {
-                    // AQUÍ ESTÁ LA MAGIA DE LOCALSTORAGE
-                    localStorage.setItem('miRutinaHIIT', JSON.stringify(this.ejercicios));
-                    this.reset();
-                    this.modo = 'timer';
-                },
-
-                restaurarDefault() {
-                    this.ejercicios = [
-                        { nombre: "Preparados", tiempo: 10, tipo: "rest" },
-                        { nombre: "Jumping Jacks", tiempo: 30, tipo: "work" },
-                        { nombre: "Descanso", tiempo: 10, tipo: "rest" }
-                    ];
-                }
             }
         }
     </script>
