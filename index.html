@@ -61,7 +61,7 @@
 }" x-data="app()">
 
     <div class="app-wrapper" style="height: 100%; display: flex; flex-direction: column;">
-        
+        <!-- Pantalla de Menú (Lista de Rutinas) -->
         <div x-show="modo === 'menu'" class="scroll-container">
             <h2 style="text-align: center; margin-bottom: 30px;">Mis Rutinas</h2>
             <template x-for="(rutina, index) in todasLasRutinas" :key="index">
@@ -85,6 +85,7 @@
             </div>
         </div>
 
+        <!-- Pantalla del Temporizador -->
         <div x-show="modo === 'timer'" class="timer-container">
             <div style="position: absolute; top: 20px; font-size: 1rem; opacity: 0.8;" x-text="nombreRutinaActual"></div>
 
@@ -94,7 +95,10 @@
             </div>
             
             <div class="big-text" x-text="tiempoRestante"></div>
-            
+
+            <div class="animation">
+                <img :src="'assets/animations/' + (ejercicioActivo.animacion || 'default.gif')" alt="Animación ejercicio" style="max-width: 200px; border-radius: 10px; display: block; margin: 0 auto;"  onerror="this.style.display='none'">
+            </div>
             <div style="margin-top: 40px; display: flex; width: 100%; max-width: 300px; gap: 15px;">
                 <button @click="toggleTimer()" class="btn" :class="corriendo ? 'btn-red' : 'btn-green'" x-text="corriendo ? 'PAUSAR' : 'INICIAR'"></button>
                 <button @click="resetTimer()" class="btn btn-gray">RESET</button>
@@ -110,6 +114,7 @@
             </div>
         </div>
 
+        <!-- Pantalla de Configuración de Rutina -->
         <div x-show="modo === 'config'" class="scroll-container">
             <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 20px;">
                 <h3>Editando: <span x-text="nombreRutinaActual"></span></h3>
@@ -118,6 +123,7 @@
             
             <div class="input-group" style="background: rgba(0,0,0,0.2); padding: 15px; border-radius: 8px; flex-direction: column;">
                 <input type="text" x-model="nuevoNombreEj" placeholder="Nombre ejercicio (ej. Flexiones)">
+                <input type="text" x-model="nuevoAnimacion" placeholder="Nombre de la animación (ej. flexiones.gif)">
                 <div style="display: flex; gap: 5px;">
                     <input type="number" x-model="nuevoTiempoEj" placeholder="Seg." style="width: 30%;">
                     <select x-model="nuevoTipoEj">
@@ -169,6 +175,7 @@
                 nuevoNombreEj: '',
                 nuevoTiempoEj: 30,
                 nuevoTipoEj: 'work',
+                nuevoAnimacion: '',
 
                 // Audio Context
                 audioCtx: null,
@@ -186,9 +193,83 @@
                 },
 
                 init() {
-                    const guardado = localStorage.getItem('misRutinasAPP');
-                    if (guardado) this.todasLasRutinas = JSON.parse(guardado);
-                    else this.todasLasRutinas = [{ nombre: "Ejemplo Rápido", ejercicios: [{ nombre: "Preparados", tiempo: 5, tipo: "rest" }, { nombre: "Saltos", tiempo: 10, tipo: "work" }] }];
+                    const guardado = localStorage.getItem('misRutinasAPP2');
+                    if (guardado)
+                        this.todasLasRutinas = JSON.parse(guardado);
+                    else {
+                        this.todasLasRutinas = [
+                            { 
+                                nombre: "Tabata I(4 min)", 
+                                ejercicios: [
+                                    // Un Tabata son 8 rondas de 20s trabajo / 10s descanso
+                                    { nombre: "Preparación", animacion: "rest.gif", tiempo: 10, tipo: "rest" },
+                                    { nombre: "Saltos de tijera", animacion: "jumping_jack.gif", tiempo: 20, tipo: "work" }, 
+                                    { nombre: "Descanso", animacion: "rest.gif", tiempo: 10, tipo: "rest" },
+                                    { nombre: "Burpees", animacion: "burpees.gif",tiempo: 20, tipo: "work" }, 
+                                    { nombre: "Descanso", animacion: "rest.gif", tiempo: 10, tipo: "rest" },
+                                    { nombre: "Sentadillas",  animacion: "squats.gif", tiempo: 20, tipo: "work" }, 
+                                    { nombre: "Descanso", animacion: "rest.gif", tiempo: 10, tipo: "rest" },
+                                    { nombre: "Flexiones", animacion: "push_up.gif", tiempo: 20, tipo: "work" }, 
+                                    { nombre: "Descanso", animacion: "rest.gif", tiempo: 10, tipo: "rest" },
+                                    { nombre: "Saltos de tijera", animacion: "jumping_jack.gif", tiempo: 20, tipo: "work" }, 
+                                    { nombre: "Descanso", animacion: "rest.gif", tiempo: 10, tipo: "rest" },
+                                    { nombre: "Burpees", animacion: "burpees.gif",tiempo: 20, tipo: "work" }, 
+                                    { nombre: "Descanso", animacion: "rest.gif", tiempo: 10, tipo: "rest" },
+                                    { nombre: "Sentadillas",  animacion: "squats.gif", tiempo: 20, tipo: "work" }, 
+                                    { nombre: "Descanso", animacion: "rest.gif", tiempo: 10, tipo: "rest" },
+                                    { nombre: "Flexiones", animacion: "push_up.gif", tiempo: 20, tipo: "work" }, 
+                                    { nombre: "Descanso", animacion: "rest.gif", tiempo: 10, tipo: "rest" },
+                                    { nombre: "Saltos de tijera", animacion: "jumping_jack.gif", tiempo: 20, tipo: "work" }, 
+                                    { nombre: "Descanso", animacion: "rest.gif", tiempo: 10, tipo: "rest" },
+                                    { nombre: "Burpees", animacion: "burpees.gif",tiempo: 20, tipo: "work" }, 
+                                    { nombre: "Descanso", animacion: "rest.gif", tiempo: 10, tipo: "rest" },
+                                    { nombre: "Sentadillas",  animacion: "squats.gif", tiempo: 20, tipo: "work" }, 
+                                    { nombre: "Descanso", animacion: "rest.gif", tiempo: 10, tipo: "rest" },
+                                    { nombre: "Flexiones", animacion: "push_up.gif", tiempo: 20, tipo: "work" }, 
+                                    { nombre: "Descanso", animacion: "rest.gif", tiempo: 10, tipo: "rest" },
+                                    { nombre: "Saltos de tijera", animacion: "jumping_jack.gif", tiempo: 20, tipo: "work" }, 
+                                    { nombre: "Descanso", animacion: "rest.gif", tiempo: 10, tipo: "rest" },
+                                    { nombre: "Burpees", animacion: "burpees.gif",tiempo: 20, tipo: "work" }, 
+                                    { nombre: "Descanso", animacion: "rest.gif", tiempo: 10, tipo: "rest" },
+                                    { nombre: "Sentadillas",  animacion: "squats.gif", tiempo: 20, tipo: "work" }, 
+                                    { nombre: "Descanso", animacion: "rest.gif", tiempo: 10, tipo: "rest" },
+                                    { nombre: "Flexiones", animacion: "push_up.gif", tiempo: 20, tipo: "work" }, 
+                                    { nombre: "Descanso", animacion: "rest.gif", tiempo: 10, tipo: "rest" },
+                                ] 
+                            },
+                            {
+                                nombre: "7 Min Workout",
+                                ejercicios: [
+                                    { nombre: "Saltos de tijera", animacion: "jumping_jack.gif", tiempo: 30, tipo: "work" }, 
+                                    { nombre: "Descanso", animacion: "rest.gif", tiempo: 10, tipo: "rest" },
+                                    { nombre: "Sentadilla en Pared", animacion: "wall_sit.gif", tiempo: 30, tipo: "work" }, 
+                                    { nombre: "Descanso", animacion: "rest.gif", tiempo: 10, tipo: "rest" },
+                                    { nombre: "Flexiones", animacion: "push_up.gif", tiempo: 30, tipo: "work" }, 
+                                    { nombre: "Descanso", animacion: "rest.gif", tiempo: 10, tipo: "rest" },
+                                    { nombre: "Crunch Abdominal", animacion: "crunches.gif", tiempo: 30, tipo: "work" }, 
+                                    { nombre: "Descanso", animacion: "rest.gif", tiempo: 10, tipo: "rest" },
+                                    { nombre: "Step en Silla", animacion: "step_in_place.gif", tiempo: 30, tipo: "work" }, 
+                                    { nombre: "Descanso", animacion: "rest.gif", tiempo: 10, tipo: "rest" },
+                                    { nombre: "Squats", animacion: "squats.gif", tiempo: 30, tipo: "work" }, 
+                                    { nombre: "Descanso", animacion: "rest.gif", tiempo: 10, tipo: "rest" },
+                                    { nombre: "Triceps en silla", animacion: "triceps.gif", tiempo: 30, tipo: "work" }, 
+                                    { nombre: "Descanso", animacion: "rest.gif", tiempo: 10, tipo: "rest" },
+                                    { nombre: "Tablón", animacion: "plank.gif", tiempo: 30, tipo: "work" }, 
+                                    { nombre: "Descanso", animacion: "rest.gif", tiempo: 10, tipo: "rest" },
+                                    { nombre: "Elevaciones de rodillas", animacion: "knee_raises.gif", tiempo: 30, tipo: "work" }, 
+                                    { nombre: "Descanso", animacion: "rest.gif", tiempo: 10, tipo: "rest" },
+                                    { nombre: "Zancada Frontal", animacion: "lunges.gif", tiempo: 30, tipo: "work" }, 
+                                    { nombre: "Descanso", animacion: "rest.gif", tiempo: 10, tipo: "rest" },
+                                    { nombre: "Flexión y Rotación", animacion: "push_up_rotation.gif", tiempo: 30, tipo: "work" }, 
+                                    { nombre: "Descanso", animacion: "rest.gif", tiempo: 10, tipo: "rest" },
+                                    { nombre: "Plancha en lado Izquierdo", animacion: "left_side_plank.gif", tiempo: 30, tipo: "work" }, 
+                                    { nombre: "Descanso", animacion: "rest.gif", tiempo: 10, tipo: "rest" },
+                                    { nombre: "Plancha en lado Derecho", animacion: "right_side_plank.gif", tiempo: 30, tipo: "work" }, 
+                                    { nombre: "Descanso", animacion: "rest.gif", tiempo: 10, tipo: "rest" }
+                                ]
+                            }
+                        ];
+                    }
                 },
 
                 // --- SONIDO (Audio API) ---
@@ -244,10 +325,14 @@
                 agregarEjercicio() {
                     if(!this.nuevoNombreEj) return;
                     this.todasLasRutinas[this.rutinaActualIndex].ejercicios.push({
-                        nombre: this.nuevoNombreEj, tiempo: parseInt(this.nuevoTiempoEj), tipo: this.nuevoTipoEj
+                        nombre: this.nuevoNombreEj, 
+                        tiempo: parseInt(this.nuevoTiempoEj), 
+                        tipo: this.nuevoTipoEj,
+                        animacion: this.nuevoAnimacion
                     });
                     this.guardarTodo();
                     this.nuevoNombreEj = '';
+                    this.nuevoAnimacion = '';
                 },
                 eliminarEjercicio(index) {
                     this.todasLasRutinas[this.rutinaActualIndex].ejercicios.splice(index, 1);
