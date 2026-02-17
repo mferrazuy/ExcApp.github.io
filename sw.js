@@ -1,4 +1,4 @@
-const CACHE_NAME = 'hiit-v1.0';
+const CACHE_NAME = 'hiit-v1.1';
 const ASSETS = [
   './',
   './index.html',
@@ -35,4 +35,5 @@ self.addEventListener('fetch', (e) => {
       return response || fetch(e.request);
     })
   );
+
 });
