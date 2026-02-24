@@ -1,4 +1,4 @@
-const CACHE_NAME = 'hiit-v1.2';
+const CACHE_NAME = 'hiit-v1.3';
 const ASSETS = [
   './',
   './index.html',
